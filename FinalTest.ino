@@ -1,3 +1,4 @@
+#include <Servo.h>
 const int speedRight = 11;
 const int rightForward = 13;
 const int rightBack = 12;
@@ -7,6 +8,7 @@ const int leftBack = 8;
 const int leftBumper = 3;
 const int centerBumper = 4;
 const int rightBumper = 5;
+const int servoPin = A2;
 
 void reverse(int time);
 void forward(int time);
@@ -30,6 +32,7 @@ bool contactZone = false;
 bool approachShooter = false;
 bool bigHit = false;
 bool ballDrop = false;
+Servo balldrop;
 mapSide side = UNKNOWN;
 int wallHits = 0;
 
@@ -123,6 +126,8 @@ void setup() {
   pinMode(leftBumper, INPUT);
   pinMode(rightBumper, INPUT);
   pinMode(centerBumper, INPUT);
+  balldrop.attach(servoPin);
+  balldrop.write(0);
 
   // setting the speeds for the respective motors
   analogWrite(speedLeft, 230);
@@ -231,7 +236,7 @@ void loop() {
     }
 
     if(digitalRead(centerBumper)) {
-      stop(15000);
+      balldrop.write(180);
     }
   }  
 
