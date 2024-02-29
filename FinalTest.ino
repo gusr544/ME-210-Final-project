@@ -3,12 +3,12 @@ const int speedRight = 11;
 const int rightForward = 13;
 const int rightBack = 12;
 const int speedLeft= 6;
-const int leftForward = 7;
-const int leftBack = 8;
+const int leftForward = 8;
+const int leftBack = 7;
 const int leftBumper = 3;
 const int centerBumper = 4;
 const int rightBumper = 5;
-const int servoPin = A2;
+const int servoPin = A1;
 
 void reverse(int time);
 void forward(int time);
@@ -35,6 +35,9 @@ bool ballDrop = false;
 Servo balldrop;
 mapSide side = UNKNOWN;
 int wallHits = 0;
+bool cBHit = false;
+bool ignoreLeft = false;
+bool ignoreRight = false;
 
 void stop(int time) {
   digitalWrite(leftForward, 0);
@@ -87,26 +90,29 @@ void respCenterBumper(){
 
 void respRightBumper(){
   reverse(20);
-  turnLeft(70);
+  turnLeft(30);
 }
 
 void respLeftBumper() {
   reverse(20);
-  turnRight(70);
+  turnRight(30);
 }
 
 void drive(int cycles) {
   for (int i = 0; i <= cycles; i ++) {
     forward(30);
-    if (digitalRead(leftBumper)) {
+    if (digitalRead(centerBumper)) {
+      cBHit = true;
+      break;
+    }
+    if (digitalRead(leftBumper) && !ignoreLeft) {
+      cBHit = false;
       respLeftBumper();
       wallHits = 0;
     }
-    if (digitalRead(rightBumper)) {
+    if (digitalRead(rightBumper) && !ignoreRight) {
+      cBHit = false;
       respRightBumper();
-      wallHits = 0;
-    }
-    if (digitalRead(centerBumper)) {
       wallHits = 0;
     }
     stop(50);
@@ -153,7 +159,7 @@ void loop() {
   }
 
   while(!outOfBox) {
-    if (wallHits >= 4 && bigHit) {
+    if (wallHits >= 3 && bigHit) {
       outOfBox = true;
       if (side == SIDEA) {
         turnRight(90);
@@ -178,65 +184,87 @@ void loop() {
     }
 
     if (side == SIDEB) {
+      ignoreRight = true;
       drive(5);
       turnLeft(20);
     }
 
     if (side == SIDEA) {
+      ignoreLeft = true;
       drive(5);
       turnRight(20);
     }
     wallHits ++;
-    if (digitalRead(centerBumper)) {
+    if (digitalRead(centerBumper) || cBHit) {
       bigHit = true;
       wallHits = 0;
       reverse(100);
       if (side == SIDEA) {
-        turnLeft(400);
+        turnLeft(260);
       }
       if (side == SIDEB) {
-        turnRight(400);
+        turnRight(260);
       }
     }
   }
 
   while(findingZone) {
+    ignoreRight = false;
+    ignoreLeft = false;
+    forward(20);
+    stop(30);
     if (digitalRead(centerBumper)) {
       contactZone = true;
-      reverse(200);
+      reverse(180);
       if (side == SIDEA) {
-        turnRight(400);
+        turnRight(230);
       }
       if (side == SIDEB) {
-        turnLeft(400);
+        turnLeft(230);
       }
       findingZone = false;
     }
-    forward(35);
-    stop(50);
     if (digitalRead(rightBumper)) {
-      reverse(300);
-      turnRight(200);
+      reverse(100);
+      turnRight(100);
     }
     if (digitalRead(leftBumper)) {
-      reverse(300);
-      turnLeft(200);
+      reverse(100);
+      turnLeft(100);
     }
   }
 
   while(contactZone) {
     if (side == SIDEB) {
+      ignoreLeft = true;
       drive(5);
-      turnRight(50);
+      turnRight(20);
     }
 
     if (side == SIDEA) {
+      ignoreRight = true;
       drive(5);
-      turnLeft(50);
+      turnLeft(20);
     }
 
-    if(digitalRead(centerBumper)) {
-      balldrop.write(180);
+    if(digitalRead(centerBumper) || cBHit) {
+      while(true) {
+          digitalWrite(leftForward, 0);
+          digitalWrite(rightForward, 0);
+
+          digitalWrite(leftBack, 0);
+          digitalWrite(rightBack, 0);
+        for (int i = 0; i <= 180; i++) {
+          balldrop.write(i);
+          delay(5); // Adjust delay as needed for your servo speed
+          }
+  
+        // Spin servo from 180 to 0 degrees
+        for (int i = 180; i >= 0; i--) {
+          balldrop.write(i);
+          delay(5); // Adjust delay as needed for your servo speed
+        }
+      }
     }
   }  
 
