@@ -9,6 +9,7 @@ const int leftBumper = 3;
 const int centerBumper = 4;
 const int rightBumper = 5;
 const int servoPin = A1;
+const int beaconPin = A4;
 
 void reverse(int time);
 void forward(int time);
@@ -38,6 +39,10 @@ int wallHits = 0;
 bool cBHit = false;
 bool ignoreLeft = false;
 bool ignoreRight = false;
+int maxPeak = 0;
+int curPeak = 0;
+bool done = false;
+int threshold = 62;
 
 void stop(int time) {
   digitalWrite(leftForward, 0);
@@ -133,7 +138,7 @@ void setup() {
   pinMode(rightBumper, INPUT);
   pinMode(centerBumper, INPUT);
   balldrop.attach(servoPin);
-  balldrop.write(0);
+  balldrop.write(180);
 
   // setting the speeds for the respective motors
   analogWrite(speedLeft, 230);
@@ -141,24 +146,58 @@ void setup() {
 }
 
 bool outOfBox = false;
-
+bool spin = false;
+int yayeet = 0;
 
 void loop() {
 
   while(start_condition == false) {
     if (digitalRead(rightBumper)) {
       start_condition = true;
+      //Serial.println("right");
       delay(1000);
       side = SIDEA;
     }
     if (digitalRead(leftBumper)) {
       start_condition = true;
+      //Serial.println("left");
       delay(1000);
       side = SIDEB;
     }
+    spin = true;
   }
 
-  while(!outOfBox) {
+  while (spin && start_condition) {
+    //Serial.println("spin");
+    curPeak = analogRead(beaconPin);
+    Serial.println(curPeak);
+    if (side == SIDEA) {
+      turnRight(20);
+    }
+    if (side == SIDEB) {
+      turnLeft(20);
+    }
+    if (maxPeak < curPeak && yayeet < threshold) {
+      maxPeak = curPeak;
+    }
+    stop(50);
+    yayeet ++;
+    if (curPeak >= maxPeak - 10 && yayeet >= threshold) {
+      spin = false;
+      stop(50);
+    if (side == SIDEA) {
+      turnRight(150);
+    }
+    if (side == SIDEB) {
+      turnLeft(150);
+    }
+      break;
+    }
+  }
+
+
+
+  while(!outOfBox && yayeet > 2) {
     if (wallHits >= 3 && bigHit) {
       outOfBox = true;
       if (side == SIDEA) {
@@ -172,13 +211,13 @@ void loop() {
         turnLeft(80);
       }
 
-      drive(20);
+      drive(22);
 
       if (side == SIDEA) {
-        turnLeft(280);
+        turnLeft(200);
       }
       if (side == SIDEB) {
-        turnRight(280);
+        turnRight(200);
       }
       findingZone = true;
     }
@@ -215,36 +254,39 @@ void loop() {
     stop(30);
     if (digitalRead(centerBumper)) {
       contactZone = true;
-      reverse(180);
+      reverse(200);
       if (side == SIDEA) {
-        turnRight(230);
+        turnRight(290);
       }
       if (side == SIDEB) {
-        turnLeft(230);
+        turnLeft(290);
       }
       findingZone = false;
+      break;
     }
     if (digitalRead(rightBumper)) {
-      reverse(100);
-      turnRight(100);
+      reverse(50);
+      turnRight(50);
     }
     if (digitalRead(leftBumper)) {
-      reverse(100);
-      turnLeft(100);
+      reverse(50);
+      turnLeft(50);
     }
   }
 
   while(contactZone) {
     if (side == SIDEB) {
+      ignoreRight = false;
       ignoreLeft = true;
       drive(5);
-      turnRight(20);
+      turnRight(15);
     }
 
     if (side == SIDEA) {
       ignoreRight = true;
+      ignoreLeft = false;
       drive(5);
-      turnLeft(20);
+      turnLeft(15);
     }
 
     if(digitalRead(centerBumper) || cBHit) {
@@ -254,16 +296,17 @@ void loop() {
 
           digitalWrite(leftBack, 0);
           digitalWrite(rightBack, 0);
+        for (int i = 180; i >= 0; i--) {
+          balldrop.write(i);
+          delay(5); // Adjust delay as needed for your servo speed
+        }
         for (int i = 0; i <= 180; i++) {
           balldrop.write(i);
           delay(5); // Adjust delay as needed for your servo speed
           }
   
         // Spin servo from 180 to 0 degrees
-        for (int i = 180; i >= 0; i--) {
-          balldrop.write(i);
-          delay(5); // Adjust delay as needed for your servo speed
-        }
+
       }
     }
   }  
