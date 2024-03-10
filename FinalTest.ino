@@ -9,13 +9,13 @@ const int speedRight = 11;
 const int rightForward = 13;
 const int rightBack = 12;
 const int speedLeft= 6;
-const int leftForward = 8;
-const int leftBack = 7;
-const int leftBumper = 3;
+const int leftForward = 7;
+const int leftBack = 8;
+const int leftBumper = 5;
 const int centerBumper = 4;
-const int rightBumper = 5;
-const int servoPin = A1;
-const int beaconPin = A4;
+const int rightBumper = 3;
+const int servoPin = A0;
+const int beaconPin = A1;
 
 void reverse(int time);
 void forward(int time);
@@ -63,7 +63,7 @@ bool ignoreRight = false;
 int maxPeak = 0;
 int curPeak = 0;
 // used in beacon detection to make sure billy has compeleted an intire spin
-int spin_threshold = 62;
+int spin_threshold = 70;
 // used to tell if billy has passed the two initial walls and made it to the main map
 bool outOfBox = false;
 // bool to control when billy is in the spinning/ scanning phase
@@ -138,17 +138,18 @@ void respLeftBumper() {
 // a little bit, then checking the bumpers, then driving some more. It does this fast enough to not miss input from sensors.
 void drive(int cycles) {
   for (int i = 0; i <= cycles; i ++) {
+    cBHit = false;
     forward(30);
-    if (digitalRead(centerBumper)) {
+    if (!digitalRead(centerBumper)) {
       cBHit = true;
       break;
     }
-    if (digitalRead(leftBumper) && !ignoreLeft) {
+    if (!digitalRead(leftBumper) && !ignoreLeft) {
       cBHit = false;
       respLeftBumper();
       wallHits = 0;
     }
-    if (digitalRead(rightBumper) && !ignoreRight) {
+    if (!digitalRead(rightBumper) && !ignoreRight) {
       cBHit = false;
       respRightBumper();
       wallHits = 0;
@@ -167,12 +168,12 @@ void setup() {
   pinMode(rightBack, OUTPUT);
   pinMode(leftForward, OUTPUT);
   pinMode(leftBack, OUTPUT);
-  pinMode(leftBumper, INPUT);
-  pinMode(rightBumper, INPUT);
-  pinMode(centerBumper, INPUT);
+  pinMode(leftBumper, INPUT_PULLUP);
+  pinMode(rightBumper, INPUT_PULLUP);
+  pinMode(centerBumper, INPUT_PULLUP);
   balldrop.attach(servoPin);
   // always write your servo to 180 when testing, this is where carlos and I have glues our servo
-  balldrop.write(180);
+  balldrop.write(0);
 
   // setting the speeds for the respective motors
   analogWrite(speedLeft, 230);
@@ -185,12 +186,12 @@ void loop() {
   // this part is used to check whether the initial bumper has been hit. SIDEA == right bumper & closer to the garage.
   // SIDEB == left bumper and farther from the garage.
   while(start_condition == false) {
-    if (digitalRead(rightBumper)) {
+    if (!digitalRead(rightBumper)) {
       start_condition = true;
       delay(1000);
       side = SIDEA;
     }
-    if (digitalRead(leftBumper)) {
+    if (!digitalRead(leftBumper)) {
       start_condition = true;
       delay(1000);
       side = SIDEB;
@@ -220,14 +221,14 @@ void loop() {
 
     // if we have done a full rotation and our curPeak is very close to our recorded max, it is time to stop spinning and start driving
     // IF THERE ARE PROBLEMS IN THIS SECTION IT IS ALMOST CERTAINLY HERE!
-    if (curPeak >= maxPeak - 10 && numTurns >= spin_threshold) {
+    if (curPeak >= maxPeak - 20 && numTurns >= spin_threshold) {
       spin = false;
       stop(50);
     if (side == SIDEA) {
-      turnRight(100);
+      turnRight(123);
     }
     if (side == SIDEB) {
-      turnLeft(100);
+      turnLeft(123);
     }
       break;
     }
@@ -250,7 +251,7 @@ void loop() {
         turnLeft(80);
       }
 
-      drive(22);
+      drive(19);
 
       if (side == SIDEA) {
         turnLeft(200);
@@ -281,7 +282,7 @@ void loop() {
     // wallhits is reset in the drive command, based off whether or not it hits a bumper
     wallHits ++;
     // check to see if the center bumper is hit
-    if (digitalRead(centerBumper) || cBHit) {
+    if (!digitalRead(centerBumper) || cBHit) {
       bigHit = true;
       wallHits = 0;
       // reverse to get some space off the wall
@@ -305,7 +306,7 @@ void loop() {
     forward(20);
     stop(30);
     // if the center bumper is it, we know we have correctly alligned on the wall and it is time to progress
-    if (digitalRead(centerBumper)) {
+    if (!digitalRead(centerBumper)) {
       contactZone = true;
       // backup and orient on the next wall
       reverse(200);
@@ -319,11 +320,11 @@ void loop() {
       break;
     }
     // if a given bumper is hit, back up and turn towards it, then drive forward again.
-    if (digitalRead(rightBumper)) {
+    if (!digitalRead(rightBumper)) {
       reverse(50);
       turnRight(50);
     }
-    if (digitalRead(leftBumper)) {
+    if (!digitalRead(leftBumper)) {
       reverse(50);
       turnLeft(50);
     }
@@ -347,7 +348,7 @@ void loop() {
     }
 
     // once the center bumper is hit
-    if(digitalRead(centerBumper) || cBHit) {
+    if(!digitalRead(centerBumper) || cBHit) {
       // drop the balls
       while(true) {
         // turn off the motors
